@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+###> doctrine/doctrine-bundle ###
+  database:
+    # network_mode: bridge
+    tty: true
+    container_name: Test_Project_Symfony_Angular_Db
+    # Image: https://hub.docker.com/_/mysql
+    image: mysql:${MYSQL_VERSION:-8.0}
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ChangeMe}
+      # Autres variables d'environement possibles :
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-test_symfony_angular}
+      # MYSQL_USER: ${MYSQL_USER:-symfony}
+      # MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ChangeMe}
+      # MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      # ...
+    volumes:
+      - data:/var/lib/mysql
+  phpmyadmin:
+    image: phpmyadmin
+    links:
+      - database
+    restart: always
+    ports:
+      - 7092:80
+    environment:
+      - PMA_ARBITRARY=1
+  backend:
+    # network_mode: bridge
+    tty: true
+    container_name: Test_Project_Symfony_Angular_backend
+    image: testproject/symfony_angular/backend:dev
+    build:
+      context: ./
+      dockerfile: .docker/Dockerfile.Symfony
+    command: ["bash", "-c", "symfony --no-interaction server:stop; symfony --no-interaction server:start"]
+    ports:
+      - "8052:8000"
+    volumes:
+      - ./back:/var/www/default
+    environment:
+      ENV_VAR: "value"
+  frontend:
+    container_name: Test_Project_Symfony_Angular_frontend
+    image: testproject/symfony_angular/front:dev
+    build:
+      context: ./
+      dockerfile: .docker/Dockerfile.Angular
+    command: serve --host 0.0.0.0
+    ports:
+      - "8032:4200"
+    volumes:
+      - ./front:/home/node/app
+    stdin_open: true
+    environment:
+      - 'EXTEND_ESLINT=true'
+
+volumes:
+  data:
+    name: data_mysql
